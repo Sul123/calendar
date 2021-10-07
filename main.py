@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException, status, Query
-from typing import List, Set, Optional
-from pydantic import BaseModel
+import uvicorn
 
 import database
+from my_types import *
 
 
 def try_call_db_method(db: database.Database, method: str, **kwargs):
@@ -17,76 +17,73 @@ db = database.Database()
 app = FastAPI()
 
 
-@app.post("/add-user", status_code=status.HTTP_201_CREATED, response_model=database.User)
-def add_user(user: database.User):
+@app.post("/add-user", status_code=status.HTTP_201_CREATED, response_model=User,
+          response_model_exclude_unset=True)
+def add_user(user: User):
     return try_call_db_method(db, "add_user", user=user)
 
 
-@app.post("/add-meeting", status_code=status.HTTP_201_CREATED, response_model=database.Meeting,
+@app.post("/add-meeting", status_code=status.HTTP_201_CREATED, response_model=Meeting,
           response_model_exclude_unset=True)
-def add_meeting(meeting: database.Meeting):
+def add_meeting(meeting: Meeting):
+    if meeting.start >= meeting.end:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid meeting interval")
+    if meeting.period and meeting.period <= meeting.duration():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Meeting period is shorter than meeting duration")
+
     return try_call_db_method(db, "add_meeting", meeting=meeting)
 
 
-@app.get("/get-meeting", status_code=status.HTTP_200_OK, response_model=database.Meeting,
+@app.get("/get-meeting-info", status_code=status.HTTP_200_OK, response_model=Meeting,
          response_model_exclude_unset=True)
-def get_meeting(meeting_id: database.MeetingId):
+def get_meeting_info(meeting_id: MeetingId):
     return try_call_db_method(db, "get_meeting", meeting_id=meeting_id)
 
 
-@app.get("/get-suggested-meetings", status_code=status.HTTP_200_OK, response_model=List[database.Meeting],
+@app.get("/get-suggested-meetings", status_code=status.HTTP_200_OK, response_model=List[Meeting],
          response_model_exclude_unset=True)
-def get_suggested_meetings(user_id: database.UserId):
-    return try_call_db_method(db, "get_suggested_meetings", user_id=user_id)
+def get_suggested_meetings(username: Username):
+    return try_call_db_method(db, "get_suggested_meetings", username=username)
 
 
-class AcceptMeetingBody(BaseModel):
-    user_id: database.UserId
-    meeting_id: database.MeetingId
-
-
-@app.put("/accept-meeting", status_code=status.HTTP_200_OK, response_model=database.Meeting,
+@app.put("/accept-meeting", status_code=status.HTTP_200_OK, response_model=Meeting,
          response_model_exclude_unset=True)
 def accept_meeting(body: AcceptMeetingBody):
-    return try_call_db_method(db, "accept_meeting", user_id=body.user_id, meeting_id=body.meeting_id)
+    return try_call_db_method(db, "accept_meeting", username=body.username, meeting_id=body.meeting_id)
 
 
-DeclineMeetingBody = AcceptMeetingBody
-
-
-@app.put("/decline-meeting", status_code=status.HTTP_200_OK, response_model=database.Meeting,
+@app.put("/decline-meeting", status_code=status.HTTP_200_OK, response_model=Meeting,
          response_model_exclude_unset=True)
 def decline_meeting(body: DeclineMeetingBody):
-    return try_call_db_method(db, "decline_meeting", user_id=body.user_id, meeting_id=body.meeting_id)
+    return try_call_db_method(db, "decline_meeting", username=body.username, meeting_id=body.meeting_id)
 
 
-@app.get("/get-accepted-meetings", status_code=status.HTTP_200_OK, response_model=List[database.Meeting],
+@app.get("/get-accepted-meetings", status_code=status.HTTP_200_OK, response_model=List[Meeting],
          response_model_exclude_unset=True)
-def get_accepted_meetings(user_id: database.UserId, start: database.Timepoint, end: database.Timepoint):
-    return try_call_db_method(db, "get_accepted_meetings", user_id=user_id, start=start, end=end)
+def get_accepted_meetings(username: Username, start: Timepoint, end: Timepoint):
+    if start >= end:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid time interval")
+    return try_call_db_method(db, "get_accepted_meetings", username=username, start=start, end=end)
 
 
-class Interval(BaseModel):
-    start: database.Timepoint
-    end: database.Timepoint
+@app.get("/get-first-available-interval", status_code=status.HTTP_200_OK, response_model=TimeInterval)
+def get_first_available_interval(duration: Duration,
+                                 search_until: Timepoint,
+                                 usernames: Set[Username] = Query(...)):
+    start = datetime.datetime.now()
 
-    def __init__(self, start, end):
-        super().__init__()
-        self.start = start
-        self.end = end
+    if search_until <= start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid searching upper bound")
 
-
-@app.get("/get-first-available-interval", status_code=status.HTTP_200_OK, response_model=Optional[Interval])
-def get_first_available_interval(duration: database.Duration,
-                                 start: database.Timepoint, end: database.Timepoint,
-                                 user_ids: Set[database.UserId] = Query(set())):
     first_available_start = try_call_db_method(db, "get_first_available_start",
-                                               user_ids=user_ids, duration=duration,
-                                               start=start, end=end)
+                                               usernames=usernames, duration=duration,
+                                               start=start, end=search_until)
     if not first_available_start:
-        return None
-    return Interval(first_available_start, first_available_start + duration)
+        return TimeInterval(start=None, end=None)
+
+    return TimeInterval(start=first_available_start, end=first_available_start + duration)
 
 
-
-
+if __name__ == "__main__":
+    uvicorn.run(app, host="localhost", port=8000)

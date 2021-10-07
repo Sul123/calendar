@@ -1,31 +1,7 @@
-import datetime
-from typing import List, Dict, Set, Optional
-from pydantic import BaseModel
 from copy import deepcopy
 from collections import defaultdict
 
-UserId = int
-MeetingId = int
-Timepoint = datetime.datetime
-Duration = datetime.timedelta
-
-
-class User(BaseModel):
-    id: Optional[UserId] = None
-    name: str
-
-
-class Meeting(BaseModel):
-    id: Optional[MeetingId] = None
-    start: Timepoint
-    end: Timepoint
-    creator_id: UserId
-    invited: Set[UserId]
-    participants: Optional[Set[UserId]] = set()
-    period: Optional[Duration] = None
-
-    def duration(self) -> Duration:
-        return self.end - self.start
+from my_types import *
 
 
 def intersects(first_start, first_end, second_start, second_end) -> bool:
@@ -56,33 +32,17 @@ class WrongRequestException(Exception):
         self.reason = reason
 
 
-class Database(BaseModel):
-    users_by_id: Dict[UserId, User] = dict()
-    meetings_by_id: Dict[MeetingId, Meeting] = dict()
-    # suggested meetings
-    user_suggested_meetings: defaultdict[UserId, Set[MeetingId]] = defaultdict(set)
-
-    # accepted meetings
-    user_single_meetings: defaultdict[UserId, Set[MeetingId]] = defaultdict(set)
-    user_regular_meetings: defaultdict[UserId, Set[MeetingId]] = defaultdict(set)
-
-    currentUserId: UserId = 0
-    currentMeetingId: MeetingId = 0
-
+class Database:
     def __init__(self):
         super().__init__()
-        self.users_by_id = dict()
+        self.users_by_username = dict()
         self.meetings_by_id = dict()
-        self.user_suggested_meetings = defaultdict(set)
-        self.user_single_meetings = defaultdict(set)
-        self.user_regular_meetings = defaultdict(set)
-        self.currentUserId = 0
+        # suggested meetings
+        self.user_suggested_meeting_ids = defaultdict(set)
+        # accepted meetings
+        self.user_single_meeting_ids = defaultdict(set)
+        self.user_regular_meeting_ids = defaultdict(set)
         self.currentMeetingId = 0
-
-    def generate_new_user_id(self) -> UserId:
-        id = self.currentUserId
-        self.currentUserId += 1
-        return id
 
     def generate_new_meeting_id(self) -> MeetingId:
         id = self.currentMeetingId
@@ -90,69 +50,68 @@ class Database(BaseModel):
         return id
 
     def add_user(self, user: User) -> User:
-        user.id = self.generate_new_user_id()
-        self.users_by_id[user.id] = user
+        self.users_by_username[user.username] = user
         return user
 
     def add_meeting(self, meeting: Meeting) -> Meeting:
         # check that all users are registered
-        for user_id in {meeting.creator_id}.union(meeting.invited):
-            if user_id not in self.users_by_id:
-                raise WrongRequestException(f"No user with id {user_id} is registered")
+        for username in {meeting.creator_username}.union(meeting.invited):
+            if username not in self.users_by_username:
+                raise WrongRequestException(f"No user with name {username} is registered")
 
         # register meeting adding creator as a participant
         meeting.id = self.generate_new_meeting_id()
         meeting.participants = set()
-        meeting.participants.add(meeting.creator_id)
-        meeting.invited.discard(meeting.creator_id)
+        meeting.participants.add(meeting.creator_username)
+        meeting.invited.discard(meeting.creator_username)
         self.meetings_by_id[meeting.id] = meeting
 
         # add meeting to creator's accepted meetings
-        meetings_storage = self.user_regular_meetings if meeting.period else self.user_single_meetings
-        meetings_storage[meeting.creator_id].add(meeting.id)
+        meetings_storage = self.user_regular_meeting_ids if meeting.period else self.user_single_meeting_ids
+        meetings_storage[meeting.creator_username].add(meeting.id)
 
         # add meeting to suggested list for all invited users
-        for user_id in meeting.invited:
-            self.user_suggested_meetings[user_id].add(meeting.id)
+        for username in meeting.invited:
+            self.user_suggested_meeting_ids[username].add(meeting.id)
 
         return meeting
 
-    def accept_meeting(self, user_id: UserId, meeting_id: MeetingId) -> Meeting:
-        if user_id not in self.users_by_id:
-            raise WrongRequestException(f"No user with id {user_id} is registered")
+    def accept_meeting(self, username: Username, meeting_id: MeetingId) -> Meeting:
+        if username not in self.users_by_username:
+            raise WrongRequestException(f"No user with name {username} is registered")
 
         if meeting_id not in self.meetings_by_id:
             raise WrongRequestException(f"No meeting with id {meeting_id} id is registered")
 
-        if meeting_id not in self.user_suggested_meetings.get(user_id, set()):
-            raise WrongRequestException(f"User with id {user_id} "
+        if meeting_id not in self.user_suggested_meeting_ids.get(username, set()):
+            raise WrongRequestException(f"User with name {username} "
                                         f"is not invited to meeting with id {meeting_id}")
 
         # move meeting from suggested to accepted and add user into participants
         meeting = self.meetings_by_id[meeting_id]
-        meeting.invited.remove(user_id)
-        meeting.participants.add(user_id)
-        self.user_suggested_meetings[user_id].remove(meeting_id)
-        meetings_storage = self.user_regular_meetings if meeting.period else self.user_single_meetings
-        meetings_storage[user_id].add(meeting_id)
+        meeting.invited.remove(username)
+        meeting.participants.add(username)
+        self.user_suggested_meeting_ids[username].remove(meeting_id)
+        meetings_storage = self.user_regular_meeting_ids if meeting.period else self.user_single_meeting_ids
+        meetings_storage[username].add(meeting_id)
 
         return meeting
 
-    def decline_meeting(self, user_id: UserId, meeting_id: MeetingId) -> Meeting:
-        if user_id not in self.users_by_id:
-            raise WrongRequestException(f"No user with {user_id} id is registered")
+    def decline_meeting(self, username: Username, meeting_id: MeetingId) -> Meeting:
+        if username not in self.users_by_username:
+            raise WrongRequestException(f"No user with name {username} is registered")
 
         if meeting_id not in self.meetings_by_id:
-            raise WrongRequestException(f"No meeting with {meeting_id} id is registered")
+            raise WrongRequestException(f"No meeting with id {meeting_id} is registered")
 
-        if meeting_id not in self.user_suggested_meetings.get(user_id, set()):
-            raise WrongRequestException(f"User with {user_id} id "
-                                        f"is not invited to meeting with {meeting_id} id")
+        if meeting_id not in self.user_suggested_meeting_ids.get(username, set()):
+            raise WrongRequestException(f"User with name {username} "
+                                        f"is not invited to meeting with id {meeting_id}")
 
-        # remove meeting from suggested
+        # remove meeting from suggested and user from invited
         meeting = self.meetings_by_id[meeting_id]
-        meeting.invited.remove(user_id)
-        self.user_suggested_meetings[user_id].remove(meeting_id)
+        meeting.invited.remove(username)
+        self.user_suggested_meeting_ids[username].remove(meeting_id)
 
         return meeting
 
@@ -162,35 +121,35 @@ class Database(BaseModel):
 
         return self.meetings_by_id[meeting_id]
 
-    """
-    returns all meetings to which user with user_id is invited
-    """
-    def get_suggested_meetings(self, user_id: UserId) -> List[Meeting]:
-        if user_id not in self.users_by_id:
-            raise WrongRequestException(f"No user with {user_id} is registered")
+    def get_suggested_meetings(self, username: Username) -> List[Meeting]:
+        if username not in self.users_by_username:
+            raise WrongRequestException(f"No user with name {username} is registered")
 
         return [self.meetings_by_id[meeting_id]
-                for meeting_id in self.user_suggested_meetings.get(user_id, set())]
+                for meeting_id in self.user_suggested_meeting_ids.get(username, set())]
 
-    def get_accepted_meetings(self, user_id: UserId, start: Timepoint, end: Timepoint) -> List[Meeting]:
-        if user_id not in self.users_by_id:
-            raise WrongRequestException(f"No user with {user_id} is registered")
+    def get_accepted_meetings(self, username: Username, start: Timepoint, end: Timepoint) -> List[Meeting]:
+        if username not in self.users_by_username:
+            raise WrongRequestException(f"No user with name {username} is registered")
 
         regular_meetings_origins = [self.meetings_by_id[meeting_id]
-                                   for meeting_id in self.user_regular_meetings.get(user_id, set())]
+                                    for meeting_id in self.user_regular_meeting_ids.get(username, set())]
         regular_meetings = sum([get_regular_meetings_from_interval(origin, start, end)
                                 for origin in regular_meetings_origins], [])
 
         single_meetings = [self.meetings_by_id[meeting_id]
-                           for meeting_id in self.user_single_meetings.get(user_id, set())]
+                           for meeting_id in self.user_single_meeting_ids.get(username, set())]
         single_meetings = [meeting for meeting in single_meetings
                            if intersects(meeting.start, meeting.end, start, end)]
 
         return single_meetings + regular_meetings
 
-    def get_first_available_start(self, user_ids: Set[UserId], duration: Duration,
+    def get_first_available_start(self, usernames: Set[Username], duration: Duration,
                                   start: Timepoint, end: Timepoint) -> Optional[Timepoint]:
-        all_meetings = sum([self.get_accepted_meetings(user_id, start, end) for user_id in user_ids], [])
+        all_meetings = sum([self.get_accepted_meetings(username, start, end) for username in usernames], [])
+        if len(all_meetings) == 0:
+            return start
+
         intervals = sorted([(meeting.start, meeting.end) for meeting in all_meetings])
 
         last_end = start
