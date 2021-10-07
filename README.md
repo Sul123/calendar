@@ -10,7 +10,7 @@ pip install requests <br />
 pip install pytest <br />
 
 To run the server, run from the project directory: <br />
-* uvicorn main:app * <br />
+ uvicorn main:app  <br />
 Server will run on localhost listening the port 8000 <br />
 
 To run tests, run *pytest* from the project directory <br />
