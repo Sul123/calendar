@@ -1,0 +1,508 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "FastAPI",
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/add-user": {
+            "post": {
+                "summary": "Add User",
+                "operationId": "add_user_add_user_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/User"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/add-meeting": {
+            "post": {
+                "summary": "Add Meeting",
+                "operationId": "add_meeting_add_meeting_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Meeting"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Meeting"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get-meeting-info": {
+            "get": {
+                "summary": "Get Meeting Info",
+                "operationId": "get_meeting_info_get_meeting_info_get",
+                "parameters": [{
+                        "required": true,
+                        "schema": {
+                            "title": "Meeting Id",
+                            "type": "integer"
+                        },
+                        "name": "meeting_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Meeting"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get-suggested-meetings": {
+            "get": {
+                "summary": "Get Suggested Meetings",
+                "operationId": "get_suggested_meetings_get_suggested_meetings_get",
+                "parameters": [{
+                        "required": true,
+                        "schema": {
+                            "title": "Username",
+                            "type": "string"
+                        },
+                        "name": "username",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "title": "Response Get Suggested Meetings Get Suggested Meetings Get",
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Meeting"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/accept-meeting": {
+            "put": {
+                "summary": "Accept Meeting",
+                "operationId": "accept_meeting_accept_meeting_put",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AcceptMeetingBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Meeting"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/decline-meeting": {
+            "put": {
+                "summary": "Decline Meeting",
+                "operationId": "decline_meeting_decline_meeting_put",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DeclineMeetingBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Meeting"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get-accepted-meetings": {
+            "get": {
+                "summary": "Get Accepted Meetings",
+                "operationId": "get_accepted_meetings_get_accepted_meetings_get",
+                "parameters": [{
+                        "required": true,
+                        "schema": {
+                            "title": "Username",
+                            "type": "string"
+                        },
+                        "name": "username",
+                        "in": "query"
+                    }, {
+                        "required": true,
+                        "schema": {
+                            "title": "Start",
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "name": "start",
+                        "in": "query"
+                    }, {
+                        "required": true,
+                        "schema": {
+                            "title": "End",
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "name": "end",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "title": "Response Get Accepted Meetings Get Accepted Meetings Get",
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Meeting"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get-first-available-interval": {
+            "get": {
+                "summary": "Get First Available Interval",
+                "operationId": "get_first_available_interval_get_first_available_interval_get",
+                "parameters": [{
+                        "required": true,
+                        "schema": {
+                            "title": "Duration",
+                            "type": "number",
+                            "format": "time-delta"
+                        },
+                        "name": "duration",
+                        "in": "query"
+                    }, {
+                        "required": true,
+                        "schema": {
+                            "title": "Search Until",
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "name": "search_until",
+                        "in": "query"
+                    }, {
+                        "required": true,
+                        "schema": {
+                            "title": "Usernames",
+                            "uniqueItems": true,
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "name": "usernames",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TimeInterval"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AcceptMeetingBody": {
+                "title": "AcceptMeetingBody",
+                "required": ["username", "meeting_id"],
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "title": "Username",
+                        "type": "string"
+                    },
+                    "meeting_id": {
+                        "title": "Meeting Id",
+                        "type": "integer"
+                    }
+                }
+            },
+            "DeclineMeetingBody": {
+                "title": "DeclineMeetingBody",
+                "required": ["username", "meeting_id"],
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "title": "Username",
+                        "type": "string"
+                    },
+                    "meeting_id": {
+                        "title": "Meeting Id",
+                        "type": "integer"
+                    }
+                }
+            },
+            "HTTPValidationError": {
+                "title": "HTTPValidationError",
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "title": "Detail",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        }
+                    }
+                }
+            },
+            "Meeting": {
+                "title": "Meeting",
+                "required": ["start", "end", "creator_username", "invited"],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "title": "Id",
+                        "type": "integer"
+                    },
+                    "start": {
+                        "title": "Start",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "end": {
+                        "title": "End",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "creator_username": {
+                        "title": "Creator Username",
+                        "type": "string"
+                    },
+                    "invited": {
+                        "title": "Invited",
+                        "uniqueItems": true,
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "participants": {
+                        "title": "Participants",
+                        "uniqueItems": true,
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "default": []
+                    },
+                    "period": {
+                        "title": "Period",
+                        "type": "number",
+                        "format": "time-delta"
+                    }
+                }
+            },
+            "TimeInterval": {
+                "title": "TimeInterval",
+                "type": "object",
+                "properties": {
+                    "start": {
+                        "title": "Start",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "end": {
+                        "title": "End",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "User": {
+                "title": "User",
+                "required": ["username"],
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "title": "Username",
+                        "type": "string"
+                    },
+                    "info": {
+                        "title": "Info",
+                        "type": "string"
+                    }
+                }
+            },
+            "ValidationError": {
+                "title": "ValidationError",
+                "required": ["loc", "msg", "type"],
+                "type": "object",
+                "properties": {
+                    "loc": {
+                        "title": "Location",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "msg": {
+                        "title": "Message",
+                        "type": "string"
+                    },
+                    "type": {
+                        "title": "Error Type",
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
